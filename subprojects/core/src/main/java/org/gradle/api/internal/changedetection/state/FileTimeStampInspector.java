@@ -26,11 +26,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
- * Attempts to detect changes made immediately after the previous build. It does this by updating a marker file at the end of the build. In the next build, consider any files whose timestamp is the same as that of this marker file as potentially changed and hash their contents.
+ * Attempts to detect changes made immediately after the previous build. It does this by updating a marker file at the end of the build. In the next build, consider any files whose timestamp is the
+ * same as that of this marker file as potentially changed and hash their contents.
  */
 public class FileTimeStampInspector extends BuildAdapter {
     private File markerFile;
     private long lastBuildTimestamp;
+
+    public static boolean isLogDetails() {
+        return System.getProperty("org.gradle.internal.uptodate.log", "false").equalsIgnoreCase("true");
+    }
 
     @Override
     public void settingsEvaluated(Settings settings) {
@@ -39,6 +44,9 @@ public class FileTimeStampInspector extends BuildAdapter {
             lastBuildTimestamp = markerFile.lastModified();
         } else {
             lastBuildTimestamp = 0;
+        }
+        if (isLogDetails()) {
+            System.out.println("Using last build timestamp: " + lastBuildTimestamp);
         }
     }
 
@@ -60,6 +68,10 @@ public class FileTimeStampInspector extends BuildAdapter {
             throw new UncheckedIOException("Could not update " + markerFile, e);
         }
         lastBuildTimestamp = markerFile.lastModified();
+        if (isLogDetails()) {
+            System.out.println("Setting last build timestamp: " + lastBuildTimestamp);
+        }
+
         markerFile = null;
     }
 

@@ -163,6 +163,7 @@ apply from: 'changes.gradle'
         // Change input content, same length
         when:
         inputFile.text = 'CONTENT'
+        executer.withArguments("-Dorg.gradle.internal.uptodate.log=true")
         succeeds "b"
 
         then:
@@ -231,6 +232,7 @@ apply from: 'changes.gradle'
         // Change intermediate output file, same length
         when:
         outputFileA.text = '[NEW CONTENT]'
+        executer.withArguments("-Dorg.gradle.internal.uptodate.log=true")
         succeeds "b"
 
         then:
@@ -593,6 +595,7 @@ task b(type: DirTransformerTask, dependsOn: a) {
             inputFile.text = it as String
             assert inputFile.length() == before
 
+            executer.withArguments("-Dorg.gradle.internal.uptodate.log=true")
             succeeds("b")
             result.assertTasksNotSkipped(":a", ":b")
         }
@@ -602,6 +605,7 @@ task b(type: DirTransformerTask, dependsOn: a) {
             outputFile.text = outputFile.text.replaceAll("\\d", "_")
             assert outputFile.length() == before
 
+            executer.withArguments("-Dorg.gradle.internal.uptodate.log=true")
             succeeds("b")
             result.assertTasksNotSkipped(":a")
         }

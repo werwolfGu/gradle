@@ -88,8 +88,19 @@ public class CachingFileHasher implements FileHasher {
             FileInfo info = cache.get(absolutePath);
 
             if (info != null && length == info.length && timestamp == info.timestamp) {
+                if (FileTimeStampInspector.isLogDetails()) {
+                    System.out.println("File '" + file.getName() + "' content has not changed (" + timestamp + "): " + absolutePath);
+                }
                 return info;
             }
+        } else {
+            if (FileTimeStampInspector.isLogDetails()) {
+                System.out.println("Hashing file '" + file.getName() + "' as it has the same timestamp as last build (" + timestamp + "): " + absolutePath);
+            }
+        }
+
+        if (FileTimeStampInspector.isLogDetails()) {
+            System.out.println("Hashing file '" + file.getName() + "' (" + timestamp + "): " + absolutePath);
         }
 
         HashCode hash = delegate.hash(file);

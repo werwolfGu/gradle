@@ -162,6 +162,7 @@ rootProject {
             assert buildFile.length() == before
 
             executer.withArguments("--init-script", initScript.absolutePath)
+            executer.withBuildJvmOpts("-Dorg.gradle.internal.uptodate.log=true")
             succeeds()
             result.assertOutputContains("counter: $it")
         }
