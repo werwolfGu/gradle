@@ -35,6 +35,7 @@ public class FileTimeStampInspector extends BuildAdapter {
     private final String pid;
     private File markerFile;
     private long lastBuildTimestamp;
+    private long buildCounter;
 
     public FileTimeStampInspector() {
         pid = ManagementFactory.getRuntimeMXBean().getName();
@@ -49,8 +50,9 @@ public class FileTimeStampInspector extends BuildAdapter {
 
     @Override
     public void buildStarted(Gradle gradle) {
+        buildCounter++;
         if (isLogDetails()) {
-            System.out.println("build started: using last build timestamp: " + lastBuildTimestamp + ", pid: " + pid);
+            System.out.println("build started: using last build timestamp: " + lastBuildTimestamp + ", pid: " + pid + ", build count: " + buildCounter);
         }
     }
 
