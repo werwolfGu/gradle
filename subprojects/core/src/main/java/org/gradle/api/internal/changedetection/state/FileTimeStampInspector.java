@@ -20,21 +20,38 @@ import org.gradle.BuildAdapter;
 import org.gradle.BuildResult;
 import org.gradle.api.UncheckedIOException;
 import org.gradle.api.initialization.Settings;
+import org.gradle.api.invocation.Gradle;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 
 /**
  * Attempts to detect changes made immediately after the previous build. It does this by updating a marker file at the end of the build. In the next build, consider any files whose timestamp is the
  * same as that of this marker file as potentially changed and hash their contents.
  */
 public class FileTimeStampInspector extends BuildAdapter {
+    private final String pid;
     private File markerFile;
     private long lastBuildTimestamp;
 
+    public FileTimeStampInspector() {
+        pid = ManagementFactory.getRuntimeMXBean().getName();
+        if (isLogDetails()) {
+            System.out.println("Inspector created, using no last build timestamp, pid: " + pid);
+        }
+    }
+
     public static boolean isLogDetails() {
         return System.getProperty("org.gradle.internal.uptodate.log", "false").equalsIgnoreCase("true");
+    }
+
+    @Override
+    public void buildStarted(Gradle gradle) {
+        if (isLogDetails()) {
+            System.out.println("build started: using last build timestamp: " + lastBuildTimestamp + ", pid: " + pid);
+        }
     }
 
     @Override
@@ -46,7 +63,7 @@ public class FileTimeStampInspector extends BuildAdapter {
             lastBuildTimestamp = 0;
         }
         if (isLogDetails()) {
-            System.out.println("Using last build timestamp: " + lastBuildTimestamp);
+            System.out.println("from marker: using last build timestamp: " + lastBuildTimestamp + ", pid: " + pid);
         }
     }
 
@@ -69,7 +86,7 @@ public class FileTimeStampInspector extends BuildAdapter {
         }
         lastBuildTimestamp = markerFile.lastModified();
         if (isLogDetails()) {
-            System.out.println("Setting last build timestamp: " + lastBuildTimestamp);
+            System.out.println("Setting last build timestamp: " + lastBuildTimestamp + ", pid: " + pid);
         }
 
         markerFile = null;
@@ -79,6 +96,9 @@ public class FileTimeStampInspector extends BuildAdapter {
      * Returns true if the given file timestamp can be used to detect a file change.
      */
     boolean timestampCanBeUsedToDetectFileChange(long timestamp) {
+        if (lastBuildTimestamp == 0 && isLogDetails()) {
+            System.out.println("No last build timestamp, pid: " + pid);
+        }
         // Do not use a timestamp that is the same as the end of the last build
         return timestamp != lastBuildTimestamp || timestamp == 0;
     }
