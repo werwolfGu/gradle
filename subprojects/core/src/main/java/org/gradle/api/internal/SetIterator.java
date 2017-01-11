@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class SetIterator<T> implements Iterator<T> {
-    private final Set<T> seen = Sets.newHashSet();
+    private final Set<T> seen;
     private final Iterator<T> delegate;
 
     private T next;
@@ -35,6 +35,11 @@ public class SetIterator<T> implements Iterator<T> {
 
     private SetIterator(Iterator<T> delegate) {
         this.delegate = delegate;
+        if (delegate instanceof WithEstimatedSize) {
+            seen = Sets.newHashSetWithExpectedSize(((WithEstimatedSize) delegate).estimatedSize());
+        } else {
+            seen = Sets.newHashSet();
+        }
         fetchNext();
     }
 

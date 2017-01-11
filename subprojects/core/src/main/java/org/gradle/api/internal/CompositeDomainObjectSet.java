@@ -16,23 +16,27 @@
 package org.gradle.api.internal;
 
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.collection.CompositeCollection;
 import org.gradle.api.Action;
 import org.gradle.api.DomainObjectCollection;
 import org.gradle.api.specs.Spec;
 import org.gradle.internal.Actions;
+import org.gradle.internal.Cast;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+
+import static org.gradle.api.internal.WithEstimatedSize.Estimates.estimateSizeOf;
 
 /**
  * A domain object collection that presents a combined view of one or more collections.
  *
  * @param <T> The type of domain objects in the component collections of this collection.
  */
-public class CompositeDomainObjectSet<T> extends DelegatingDomainObjectSet<T> {
+public class CompositeDomainObjectSet<T> extends DelegatingDomainObjectSet<T> implements WithEstimatedSize {
 
     private final Spec<T> uniqueSpec = new ItemIsUniqueInCompositeSpec();
     private final Spec<T> notInSpec = new ItemNotInCompositeSpec();
@@ -123,12 +127,32 @@ public class CompositeDomainObjectSet<T> extends DelegatingDomainObjectSet<T> {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * This method is expensive. Avoid calling it if possible. If all you need is a rough
+     * estimate, call {@link #estimatedSize()} instead.
+     */
     public int size() {
         CompositeCollection store = getStore();
         if (store.isEmpty()) {
             return 0;
         }
-        return new HashSet<T>(store).size();
+        Set<T> tmp = Sets.newHashSetWithExpectedSize(estimatedSize());
+        tmp.addAll(store);
+        return tmp.size();
+    }
+
+    @Override
+    public int estimatedSize() {
+        CompositeCollection store = getStore();
+        if (store.isEmpty()) {
+            return 0;
+        }
+        Collection<Collection<T>> collections = Cast.uncheckedCast(getStore().getCollections());
+        int size = 0;
+        for (Collection<T> collection : collections) {
+            size += estimateSizeOf(collection);
+        }
+        return size;
     }
 
     public void all(Action<? super T> action) {
