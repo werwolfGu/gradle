@@ -18,6 +18,7 @@ package org.gradle.api.internal;
 
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.tasks.TaskOutputFilePropertySpec;
+import org.gradle.api.internal.tasks.execution.TaskCachingReasonsListener;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.TaskOutputs;
 
@@ -52,4 +53,6 @@ public interface TaskOutputsInternal extends TaskOutputs {
      * {@literal @}{@link org.gradle.api.tasks.OutputDirectories}; or {@code true} otherwise.
      */
     boolean isCacheAllowed();
+
+    boolean isCacheEnabled(TaskCachingReasonsListener taskCachingReasonsListener);
 }

@@ -69,6 +69,8 @@ public interface TaskOutputs extends CompatibilityAdapterForTaskOutputs {
     @Incubating
     void cacheIf(Spec<? super Task> spec);
 
+    void cacheIf(String message, final Spec<? super Task> spec);
+
     /**
      * <p>Disable caching the results of the task if the given spec is satisfied. The spec will be evaluated at task execution time, not
      * during configuration. If the spec is not satisfied, the results of the task will be cached according to {@link #cacheIf(Spec)}.</p>
@@ -82,6 +84,8 @@ public interface TaskOutputs extends CompatibilityAdapterForTaskOutputs {
      */
     @Incubating
     void doNotCacheIf(Spec<? super Task> spec);
+
+    void doNotCacheIf(String message, Spec<? super Task> spec);
 
     /**
      * Returns true if this task has declared any outputs. Note that a task may be able to produce output files and

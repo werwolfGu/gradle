@@ -48,7 +48,7 @@ class SkipCachedTaskExecuterTest extends Specification {
     def taskOutputOriginFactory = Mock(TaskOutputOriginFactory)
     def internalTaskExecutionListener = Mock(TaskOutputsGenerationListener)
 
-    def executer = new SkipCachedTaskExecuter(taskOutputOriginFactory, buildCacheConfiguration, taskOutputPacker, internalTaskExecutionListener, delegate)
+    def executer = new SkipCachedTaskExecuter(taskOutputOriginFactory, buildCacheConfiguration, taskOutputPacker, internalTaskExecutionListener, delegate, taskCachingReasonsListener)
 
     def "skip task when cached results exist"() {
         when:

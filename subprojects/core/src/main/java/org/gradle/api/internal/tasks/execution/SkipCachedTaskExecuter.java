@@ -47,14 +47,16 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
     private final TaskExecuter delegate;
     private final TaskOutputsGenerationListener taskOutputsGenerationListener;
     private final TaskOutputOriginFactory taskOutputOriginFactory;
+    private final TaskCachingReasonsListener taskCachingReasonsListener;
     private BuildCache cache;
 
-    public SkipCachedTaskExecuter(TaskOutputOriginFactory taskOutputOriginFactory, BuildCacheConfigurationInternal buildCacheConfiguration, TaskOutputPacker packer, TaskOutputsGenerationListener taskOutputsGenerationListener, TaskExecuter delegate) {
+    public SkipCachedTaskExecuter(TaskOutputOriginFactory taskOutputOriginFactory, BuildCacheConfigurationInternal buildCacheConfiguration, TaskOutputPacker packer, TaskOutputsGenerationListener taskOutputsGenerationListener, TaskExecuter delegate, TaskCachingReasonsListener taskCachingReasonsListener) {
         this.taskOutputOriginFactory = taskOutputOriginFactory;
         this.buildCacheConfiguration = buildCacheConfiguration;
         this.packer = packer;
         this.taskOutputsGenerationListener = taskOutputsGenerationListener;
         this.delegate = delegate;
+        this.taskCachingReasonsListener = taskCachingReasonsListener;
     }
 
     @Override
@@ -65,7 +67,7 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
 
         boolean cacheEnabled;
         try {
-            cacheEnabled = taskOutputs.isCacheEnabled();
+            cacheEnabled = taskOutputs.isCacheEnabled(taskCachingReasonsListener);
         } catch (Exception t) {
             throw new GradleException(String.format("Could not evaluate TaskOutputs.cacheIf for %s.", task), t);
         }
@@ -112,9 +114,11 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
                             LOGGER.debug("Not loading {} from cache because pulling from cache is disabled for this build", task);
                         }
                     } else {
+                        taskCachingReasonsListener.notCacheable("Declares multiple output files for a single output property via `@OutputFiles`, `@OutputDirectories` or `TaskOutputs.files()`", task);
                         LOGGER.info("Not caching {} because it declares multiple output files for a single output property via `@OutputFiles`, `@OutputDirectories` or `TaskOutputs.files()`", task);
                     }
                 } else {
+                    taskCachingReasonsListener.notCacheable("No outputs declared", task);
                     LOGGER.info("Not caching {} as task has declared no outputs", task);
                 }
             } else {

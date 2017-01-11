@@ -30,21 +30,23 @@ import org.gradle.api.internal.file.CompositeFileCollection;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.file.collections.FileCollectionResolveContext;
 import org.gradle.api.internal.tasks.CacheableTaskOutputFilePropertySpec.OutputType;
+import org.gradle.api.internal.tasks.execution.TaskCachingReasonsListener;
 import org.gradle.api.specs.AndSpec;
-import org.gradle.api.specs.OrSpec;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.TaskOutputFilePropertyBuilder;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
 
 public class DefaultTaskOutputs implements TaskOutputsInternal {
     private final FileCollection allOutputFiles;
     private AndSpec<TaskInternal> upToDateSpec = AndSpec.empty();
-    private AndSpec<TaskInternal> cacheIfSpec = AndSpec.empty();
-    private OrSpec<TaskInternal> doNotCacheIfSpec = OrSpec.empty();
+    private Map<String, Spec<? super TaskInternal>> cacheIfSpec = new LinkedHashMap<String, Spec<? super TaskInternal>>();
+    private Map<String, Spec<? super TaskInternal>> doNotCacheIfSpec = new LinkedHashMap<String, Spec<? super TaskInternal>>();
     private TaskExecutionHistory history;
     private final List<TaskOutputPropertySpecAndBuilder> filePropertiesInternal = Lists.newArrayList();
     private SortedSet<TaskOutputFilePropertySpec> fileProperties;
@@ -87,8 +89,41 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
 
     @Override
     public boolean isCacheEnabled() {
-        return !cacheIfSpec.getSpecs().isEmpty() && cacheIfSpec.isSatisfiedBy(task)
-            && (doNotCacheIfSpec.isEmpty() || !doNotCacheIfSpec.isSatisfiedBy(task));
+        return isCacheEnabled(new TaskCachingReasonsListener() {
+            @Override
+            public void cachingNotEnabled(Task task) {
+            }
+
+            @Override
+            public void notCacheable(String reason, Task task) {
+            }
+        });
+    }
+
+    @Override
+    public boolean isCacheEnabled(TaskCachingReasonsListener taskCachingReasonsListener) {
+        Map<String, Spec<? super TaskInternal>> cacheIfSpecs = this.cacheIfSpec;
+        if (cacheIfSpecs.isEmpty()) {
+            taskCachingReasonsListener.cachingNotEnabled(task);
+            return false;
+        }
+        for (Map.Entry<String, Spec<? super TaskInternal>> messageAndSpec : cacheIfSpecs.entrySet()) {
+            String message = messageAndSpec.getKey();
+            Spec<? super TaskInternal> spec = messageAndSpec.getValue();
+            if (!spec.isSatisfiedBy(task)) {
+                taskCachingReasonsListener.notCacheable(message, task);
+                return false;
+            }
+        }
+        for (Map.Entry<String, Spec<? super TaskInternal>> messageAndSpec : doNotCacheIfSpec.entrySet()) {
+            String message = messageAndSpec.getKey();
+            Spec<? super TaskInternal> spec = messageAndSpec.getValue();
+            if (spec.isSatisfiedBy(task)) {
+                taskCachingReasonsListener.notCacheable(message, task);
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -103,18 +138,28 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
 
     @Override
     public void cacheIf(final Spec<? super Task> spec) {
+        cacheIf("Unknown reason", spec);
+    }
+
+    @Override
+    public void cacheIf(final String message, final Spec<? super Task> spec) {
         taskMutator.mutate("TaskOutputs.cacheIf(Spec)", new Runnable() {
             public void run() {
-                cacheIfSpec = cacheIfSpec.and(spec);
+                cacheIfSpec.put(message, spec);
             }
         });
     }
 
     @Override
     public void doNotCacheIf(final Spec<? super Task> spec) {
+        doNotCacheIf("Unknown reason", spec);
+    }
+
+    @Override
+    public void doNotCacheIf(final String message, final Spec<? super Task> spec) {
         taskMutator.mutate("TaskOutputs.doNotCacheIf(Spec)", new Runnable() {
             public void run() {
-                doNotCacheIfSpec = doNotCacheIfSpec.or(spec);
+                doNotCacheIfSpec.put(message, spec);
             }
         });
     }
